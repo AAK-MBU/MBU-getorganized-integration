@@ -10,9 +10,9 @@ GO authenticates via NTLM. This module is the stateless GO API surface:
   fallback for files GO's ``DocumentBytes`` endpoint truncates (>~10 MB)
 * ``pdf_convert()`` — GO's built-in PDF converter
   (``Documents/ConvertToPDF/{id}/{version}``)
-* ``find_documents()`` — resolve an AktPerson's documents from CPR (+
-  tjenestenummer). **Interface seam** — the exact GO search semantics are not
-  yet confirmed, so the body is stubbed (see the NotImplementedError).
+* ``case_lookup_by_cpr()`` / ``list_subcases()`` / ``list_documents_in_case()``
+  — the personalemapper document-discovery chain (CPR → personalesag → folders
+  → documents), composed by ``find_documents()`` into ``list[GoDocument]``.
 
 The GO primitives are vendored from ``mtm-aarhus/oomtm`` (``oomtm.go``), which
 is the production-tested implementation; SharePoint/Nova and the Windows-only
