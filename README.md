@@ -14,22 +14,34 @@ OCR runs in the consuming application, not here.
 - **`go`** — NTLM-authenticated GO client: `session()`, `fetch_metadata()`,
   `fetch_parents()` / `fetch_children()`, `download_file()` (chunked, with the
   SharePoint-blob fallback for large files), `pdf_convert()` (GO's native
-  converter), and `find_documents(cpr, tjenestenummer)` — see the seam note
-  below.
+  converter), and the AktPerson document discovery — `case_lookup_by_cpr()`,
+  `list_subcases()`, `list_documents_in_case()`, composed by
+  `find_documents(cpr, tjenestenummer)` — see the discovery note below.
 - **`pdf`** — convert the files GO yields into PDF: passthrough for PDFs,
   LibreOffice headless for office/email/HTML, Pillow for images. `convert_to_pdf`
   is the orchestrator.
 - **`config`** — `go_config_from_env()` reads `GO_API_URL` / `GO_USERNAME` /
   `GO_PASSWORD` (+ optional `LIBREOFFICE_PATH`).
 
-## `go.find_documents` is a stub (interface seam)
+## AktPerson document discovery (personalemapper)
 
-Resolving an AktPerson's documents from a CPR (+ tjenestenummer) depends on GO
-search/contact-lookup semantics that aren't yet confirmed for this deployment.
-The function's **signature and return type (`list[GoDocument]`) are stable** so
-consumers can integrate today; the body raises `NotImplementedError` until the
-real query is wired in. See the consuming app's gather pipeline (which uses a
-mock backend in the meantime).
+A person's documents live as files under the sub-cases ("mapper") of their PER
+personalesag in the *personalemapper* site, so `find_documents` resolves them in
+three steps, each exposed as its own function:
+
+1. **`case_lookup_by_cpr(cpr)`** — GO modern search (PER scope) → the
+   personalesag id + its `PER` web prefix.
+2. **`list_subcases(personale_sags_id, akt_id)`** — the folders, each a child
+   case (`CCMParentCase` filter), paginated.
+3. **`list_documents_in_case(sags_id)`** — the documents in one folder, across
+   the journalised + not-journalised views (`CCMSubID` filter, `NextHref`
+   paginated, de-duplicated), as rich `CaseDocument`s.
+
+`find_documents(cpr, tjenestenummer)` composes these into `list[GoDocument]`
+(the minimal contract the gather consumer depends on). `tjenestenummer` is
+accepted for API stability but not yet used to narrow the result — the
+personalesag is keyed by CPR. The endpoint shapes encode the personalemapper
+deployment's conventions, verified against the legacy HentFiler robot.
 
 ## Install
 
