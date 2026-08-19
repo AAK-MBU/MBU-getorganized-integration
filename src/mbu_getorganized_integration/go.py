@@ -27,7 +27,6 @@ import re
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
-from urllib.parse import quote
 
 import requests
 from requests_ntlm import HttpNtlmAuth
@@ -433,7 +432,12 @@ def list_documents_in_case(
     sags_url = xdoc.attrib.get("ows_CaseUrl")  # e.g. "cases/PER55/PER-2026-000123"
     akt = sags_url.split("cases/")[1].split("/")[0]
     endelse = sags_id.rsplit("-", 1)[-1]
-    encoded_sags_id = quote(sags_id, safe="")
+    # Documents live in the *parent* personalesag's "Dokumenter" library; each
+    # sub-case is a folder (``endelse``, e.g. "001") within it. So @listUrl /
+    # RootFolder address the parent case id — the endelse is stripped off — with
+    # hyphens as %2D (matching the legacy HentFiler robot exactly). Using the
+    # full sub-case id here yields a non-existent list (FileNotFoundException).
+    encoded_sags_id = sags_id.rsplit("-", 1)[0].replace("-", "%2D")
 
     counter = s.get(
         f"{base_url}/{sags_url}/_goapi/Administration/GetLeftMenuCounter/{endelse}", timeout=60

@@ -22,15 +22,15 @@ class GoConfig:
 
 
 def go_config_from_env() -> GoConfig:
-    """Build a :class:`GoConfig` from ``GO_API_URL`` / ``GO_USERNAME`` /
-    ``GO_PASSWORD`` (and optional ``LIBREOFFICE_PATH``).
+    """Build a :class:`GoConfig` from ``go_api_endpoint`` / ``go_api_username`` /
+    ``go_api_password`` (and optional ``LIBREOFFICE_PATH``).
 
     Raises ``RuntimeError`` if any required variable is missing — fail fast
     rather than make a half-configured GO call.
     """
     missing = [
         name
-        for name in ("GO_API_URL", "GO_USERNAME", "GO_PASSWORD")
+        for name in ("go_api_endpoint", "go_api_username", "go_api_password")
         if not os.environ.get(name)
     ]
     if missing:
@@ -38,8 +38,8 @@ def go_config_from_env() -> GoConfig:
             "Missing required GO settings: " + ", ".join(missing)
         )
     return GoConfig(
-        base_url=os.environ["GO_API_URL"].rstrip("/"),
-        username=os.environ["GO_USERNAME"],
-        password=os.environ["GO_PASSWORD"],
+        base_url=os.environ["go_api_endpoint"].rstrip("/"),
+        username=os.environ["go_api_username"],
+        password=os.environ["go_api_password"],
         libreoffice_path=os.environ.get("LIBREOFFICE_PATH"),
     )

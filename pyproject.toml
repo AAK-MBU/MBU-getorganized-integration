@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mbu-getorganized-integration"
-version = "0.1.0"
+version = "0.3.0"
 description = "GetOrganized (GO) client + PDF conversion for AAK-MBU (Linux-first)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,11 +29,13 @@ dependencies = [
 pdf = [
     "Pillow >= 10.0",
     "extract-msg >= 0.48",
+    "pypdf >= 4.0",
 ]
 dev = [
     "pytest",
     "Pillow >= 10.0",
     "extract-msg >= 0.48",
+    "pypdf >= 4.0",
 ]
 
 [tool.setuptools.packages.find]

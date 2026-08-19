@@ -20,8 +20,8 @@ OCR runs in the consuming application, not here.
 - **`pdf`** — convert the files GO yields into PDF: passthrough for PDFs,
   LibreOffice headless for office/email/HTML, Pillow for images. `convert_to_pdf`
   is the orchestrator.
-- **`config`** — `go_config_from_env()` reads `GO_API_URL` / `GO_USERNAME` /
-  `GO_PASSWORD` (+ optional `LIBREOFFICE_PATH`).
+- **`config`** — `go_config_from_env()` reads `go_api_endpoint` /
+  `go_api_username` / `go_api_password` (+ optional `LIBREOFFICE_PATH`).
 
 ## AktPerson document discovery (personalemapper)
 

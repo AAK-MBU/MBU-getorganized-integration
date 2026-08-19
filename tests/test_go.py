@@ -160,16 +160,25 @@ def test_list_documents_in_case_paginates_and_dedupes():
                  "FileRef": "/cases/x/a.pdf", "FileLeafRef.Name": "a.pdf"}],
     })
     s = _FakeSession({
-        "/_goapi/Cases/Metadata/": _metadata_resp("cases/PER55/PER-2026-000123"),
+        "/_goapi/Cases/Metadata/": _metadata_resp("cases/PER55/PER-2026-000123-001"),
         "/GetLeftMenuCounter/": counter,
         "GetList(@listUrl)/RenderListDataAsStream": [page1, page2, v2],
     })
 
-    docs = go.list_documents_in_case(s, base_url="https://go.example", sags_id="PER-2026-000123")
+    docs = go.list_documents_in_case(s, base_url="https://go.example", sags_id="PER-2026-000123-001")
 
     assert [d.dok_id for d in docs] == ["1001", "1002"]  # 1001 not duplicated
     assert docs[0].name == "a.pdf" and docs[0].ext == "pdf"
     assert docs[1].ext == "docx"
+
+    # The @listUrl addresses the *parent* case's Dokumenter library (endelse
+    # "-001" stripped, hyphens as %2D); the "001" survives only as the folder in
+    # RootFolder + the CCMSubID filter. Regression guard for the FileNotFound bug.
+    render_calls = [c for c in s.calls if "GetList(@listUrl)" in c]
+    assert "%27%2Fcases%2FPER55%2FPER%2D2026%2D000123%2FDokumenter%27" in render_calls[0]
+    assert "PER%2D2026%2D000123%2D001%2FDokumenter" not in render_calls[0]
+    assert "RootFolder=%2Fcases%2FPER55%2FPER%2D2026%2D000123%2FDokumenter%2F001" in render_calls[0]
+    assert "FilterField1=CCMSubID&FilterValue1=001" in render_calls[0]
 
 
 def test_list_documents_in_case_skips_missing_view():
