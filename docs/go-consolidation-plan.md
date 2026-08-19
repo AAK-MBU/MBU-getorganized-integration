@@ -1,8 +1,36 @@
 # GO consolidation — plan & status
 
-> **Status: PAUSED (owner on vacation).** Plan approved as *plan-only, no code yet*.
-> Before implementation starts, answer the 3 open questions in §8.
-> Resume by reading this file top-to-bottom.
+> **Status: READY TO BUILD (handoff written 2026-08-19).** Layout decision: the
+> **LAYERED ~9-file layout in §2** (owner's choice). The 3 open questions in §8 are
+> now answered (see §8). Build in a fresh session: read this file top-to-bottom,
+> then start at §7 step 1.
+>
+> **Base:** work on branch **`task/go-consolidation`**, already created off commit
+> **`c78b94c`** (which committed the prior working state — email→PDF WIP, the
+> `go_api_*` env rename, the personalesag doc-list fix). Local-only repo: nothing
+> is pushed; `origin/main` is still `f2b7933 "Initial commit"`. Commit freely on
+> this task branch; do NOT push or open a PR unless the owner asks.
+>
+> ### §0.5 Reconciliation with the actual repo (READ THIS — it overrides stale bits below)
+> The body of this plan predates the current code. Where they differ, the repo wins:
+> - **Env vars are already `go_api_endpoint` / `go_api_username` / `go_api_password`**
+>   (config.py, committed) — NOT `GO_API_URL/GO_USERNAME/GO_PASSWORD`. Keep the new names.
+> - **`pdf.py` carries an UNFINISHED email→PDF / `merge_pdfs` feature** (rode along in
+>   the base commit). The consolidation does not touch `pdf.py` — leave that WIP alone.
+> - **Consumer retarget:** `MBU_Journalisering_service` (referenced in §6/§9) is **NOT on
+>   this machine**. The real integration target is **`projects/ats_fratag_formynd`**.
+>   The hand-built `ows_...` XML to move into `payloads.py` now lives in
+>   `ats_fratag_formynd/processes/subprocesses/opret_esdh/esdh_client.py`
+>   (`_build_metadata_xml`, the citizen-folder `<z:row>`, the search-json usage) plus
+>   `mbu_dev_shared_components/getorganized/objects.py`. Treat §6/§9 as historical.
+> - **API gap — add `close_case`** (see §4): `ats_fratag_formynd/luk` needs it, and it
+>   exists in NEITHER this package NOR `mbu_dev_shared_components`. The close endpoint
+>   lived inside the old external `mbu_getorganized_integration.CaseHandler` (not
+>   installed here). **BUILD-SESSION RESEARCH ITEM:** determine the GO close endpoint
+>   (likely `/_goapi/Cases/CloseCase` or similar) and confirm before implementing.
+> - After build: owner tests on host, THEN integrate into `ats_fratag_formynd` (swap
+>   `esdh_client.py` + luk's `CaseHandler` for `GoClient`; drop that repo's
+>   `mbu-dev-shared-components[getorganized]` and the undeclared `mbu_getorganized_integration`).
 
 Goal: make `MBU-getorganized-integration` the single home for GetOrganized (GO)
 logic. Standardize on the **session** approach, port the shared-components
@@ -111,6 +139,7 @@ class GoClient:
     def create_case(self, *, case_type_prefix, title, owner, profile,
                     department=None, kle=None, parent_case=None, ...) -> Case
     def open_case(self, case_id, *, reason=None) -> None
+    def close_case(self, case_id, *, reason=None) -> None   # ats_fratag_formynd/luk needs this — see §0.5
     def get_case_metadata(self, case_id) -> dict
 
     # documents (write)
@@ -178,13 +207,17 @@ No endpoint paths, no XML, no NTLM plumbing in the process.
 4. **`GoClient` façade** — compose everything; client-level tests.
 5. **(separate repo) consumer migration** — swap handlers for `GoClient`.
 
-## 8. Open questions — ANSWER THESE FIRST when resuming
+## 8. Open questions — ANSWERED (2026-08-19)
 
-1. **`go.py`**: keep as a deprecation shim, or hard-cut and repoint our own tests?
-2. **Write-op return types**: rich dataclasses everywhere (proposed), or dicts
-   close to GO's raw JSON for the write ops?
-3. **Multi-site paths**: bake a `site=` concept into `GoClient`
-   (`/borgersager/…`, `/personalemapper/…`), or keep per-method defaults?
+1. **`go.py`**: **hard-cut.** Split it into `_http.py` / `documents.py` / `discovery.py`
+   and delete `go.py`; repoint the existing tests. The package is unpublished — there
+   is no external API to preserve, so skip the deprecation shim (this overrides the
+   "go.py-shim" note in §2's layout).
+2. **Write-op return types**: **rich typed dataclasses everywhere** (`models.py`) —
+   consistent with the locked "clean typed API" decision. No raw-dict returns.
+3. **Multi-site paths**: **per-method `site=` default** now (e.g. `contact_lookup(..,
+   site="borgersager")`); do NOT bake a global site concept into `GoClient`. Add one
+   only if a second site is actually required.
 
 ## 9. Reference pointers
 
