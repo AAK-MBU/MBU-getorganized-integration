@@ -6,8 +6,8 @@ converting the documents it yields into PDF. The GO primitives are vendored from
 deliberately out of scope (OCR runs in the consuming application).
 """
 
-from . import go, pdf
+from . import go, models, pdf
 from .config import GoConfig, go_config_from_env
-from .go import GoDocument
+from .models import GoDocument
 
-__all__ = ["go", "pdf", "GoConfig", "go_config_from_env", "GoDocument"]
+__all__ = ["go", "models", "pdf", "GoConfig", "go_config_from_env", "GoDocument"]

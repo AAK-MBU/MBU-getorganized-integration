@@ -26,23 +26,15 @@ import json
 import re
 import time
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
 
 import requests
 from requests_ntlm import HttpNtlmAuth
 
-
-# ---------------------------------------------------------------------------
-# Session
-# ---------------------------------------------------------------------------
-
-
-def session(username: str, password: str) -> requests.Session:
-    """Return a fresh NTLM-authenticated session for GO."""
-    s = requests.Session()
-    s.auth = HttpNtlmAuth(username, password)
-    s.headers.update({"Content-Type": "application/json"})
-    return s
+# session() moved to _http.py and the models to models.py (plan §2); re-exported
+# here so `from ...go import session, GoDocument, ...` keeps working until the
+# read surface is relocated (step 2).
+from ._http import session  # noqa: F401  (re-export)
+from .models import CaseDocument, GoDocument, Subcase  # noqa: F401  (re-export)
 
 
 # ---------------------------------------------------------------------------
@@ -250,54 +242,9 @@ def pdf_convert(
 # find_documents() composes these into the minimal GoDocument contract the
 # gather consumer depends on. The endpoint shapes encode the personalemapper
 # deployment's conventions (verified against the legacy HentFiler robot).
+#
+# GoDocument / Subcase / CaseDocument now live in models.py (imported above).
 # ---------------------------------------------------------------------------
-
-
-@dataclass
-class GoDocument:
-    """A document discovered in GO for an AktPerson.
-
-    The minimal shape the gathering process needs: an id to download by, a
-    display name, and the bare file extension (drives PDF conversion). ``raw``
-    carries the unparsed GO metadata for callers that need more.
-    """
-
-    dok_id: str
-    name: str
-    ext: str | None = None
-    raw: dict = field(default_factory=dict)
-
-
-@dataclass
-class Subcase:
-    """A folder ("mappe") in a personalesag — itself a GO child case."""
-
-    case_id: str
-    title: str
-
-
-@dataclass
-class CaseDocument:
-    """A document in a (sub-)case, as returned by RenderListDataAsStream."""
-
-    dok_id: str
-    akt_id: str
-    title: str
-    file_ref: str
-    file_name: str
-    dato: str | None = None
-    korrespondance: str | None = None
-    raw: dict = field(default_factory=dict, repr=False)
-
-    @property
-    def name(self) -> str:
-        """The real file name if present, else the document title."""
-        return self.file_name or self.title
-
-    @property
-    def ext(self) -> str | None:
-        """Bare file extension derived from the file name (drives conversion)."""
-        return self.file_name.rsplit(".", 1)[-1].lower() if "." in self.file_name else None
 
 
 # This view selects the sub-cases' title + CaseID. Static — the proven
