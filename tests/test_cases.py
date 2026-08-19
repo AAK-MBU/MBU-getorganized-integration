@@ -29,9 +29,7 @@ def test_find_case_maps_casesinfo_rows(fake_session, make_response):
         {"CaseID": "BOR-2026-000002", "Title": "B"},
     ]})
     s = fake_session({"/findbycaseproperties": resp})
-    search = payloads.search_citizen_folder_data(
-        "BOR", "1403820209", person_full_name="Navn", person_id="42"
-    )
+    search = payloads.search_citizen_folder_data("BOR", "Navn", "42", "1403820209")
 
     found = cases.find_case(s, base_url="https://go.example", search_data=search)
 
