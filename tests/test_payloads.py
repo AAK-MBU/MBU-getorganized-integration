@@ -36,17 +36,24 @@ def test_document_data_json_shape():
 # ----- Search builders -------------------------------------------------------
 
 
-def test_generic_search_includes_name_by_default():
-    body = payloads.generic_search_case_data("BOR", "Navn Navnesen", "42", "1403820209")
+def test_generic_search_includes_name_when_given():
+    body = payloads.generic_search_case_data(
+        "BOR", "1403820209", person_full_name="Navn Navnesen", person_id="42"
+    )
     fp = body["FieldProperties"][0]
     assert fp["InternalName"] == "ows_CCMContactData"
     assert fp["Value"] == "Navn Navnesen;#42;#1403820209;#;#"
     assert body["CaseTypePrefixes"] == ["BOR"]
 
 
+def test_generic_search_ssn_only():
+    body = payloads.generic_search_case_data("BOR", "1403820209")
+    assert body["FieldProperties"][0]["Value"] == ";#;#1403820209;#;#"
+
+
 def test_generic_search_can_omit_name():
     body = payloads.generic_search_case_data(
-        "BOR", "Navn Navnesen", "42", "1403820209", include_name=False
+        "BOR", "1403820209", person_full_name="Navn Navnesen", person_id="42", include_name=False
     )
     assert body["FieldProperties"][0]["Value"] == ";#42;#1403820209;#;#"
 
@@ -54,9 +61,9 @@ def test_generic_search_can_omit_name():
 def test_generic_search_extra_field_properties_string_and_dict():
     body = payloads.generic_search_case_data(
         "BOR",
-        "N",
-        "42",
         "1403820209",
+        person_full_name="N",
+        person_id="42",
         field_properties={
             "ows_Title": {"value": "Kørsel til ", "comparison": "Contains"},
             "ows_CCMContactData_CPR": "1403820209",
@@ -78,10 +85,18 @@ def test_simple_search_has_no_contact_data():
 
 
 def test_search_citizen_folder_matches_category():
-    body = payloads.search_citizen_folder_data("BOR", "Navn", "42", "1403820209")
+    body = payloads.search_citizen_folder_data(
+        "BOR", "1403820209", person_full_name="Navn", person_id="42"
+    )
     names = {fp["InternalName"]: fp["Value"] for fp in body["FieldProperties"]}
     assert names["ows_CaseCategory"] == "Borgermappe"
     assert names["ows_CCMContactData"] == "Navn;#42;#1403820209;#;#"
+
+
+def test_search_citizen_folder_ssn_only():
+    body = payloads.search_citizen_folder_data("BOR", "1403820209")
+    names = {fp["InternalName"]: fp["Value"] for fp in body["FieldProperties"]}
+    assert names["ows_CCMContactData"] == ";#;#1403820209;#;#"
 
 
 # ----- MetadataXml builders --------------------------------------------------

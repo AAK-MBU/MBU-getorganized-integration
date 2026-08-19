@@ -73,19 +73,23 @@ class GoClient:
         self,
         *,
         case_type_prefix: str,
-        person_full_name: str,
-        person_id: str,
         person_ssn: str,
+        person_full_name: str = "",
+        person_id: str = "",
         include_name: bool = True,
         returned_cases_number: str = "1",
         field_properties: dict | None = None,
     ) -> list[Case]:
-        """Search cases by a person's contact data (+ optional extra fields)."""
+        """Search cases by a person's contact data (+ optional extra fields).
+
+        Only ``person_ssn`` is required; ``person_full_name`` / ``person_id``
+        narrow the match when given.
+        """
         search = payloads.generic_search_case_data(
             case_type_prefix,
-            person_full_name,
-            person_id,
             person_ssn,
+            person_full_name=person_full_name,
+            person_id=person_id,
             include_name=include_name,
             returned_cases_number=returned_cases_number,
             field_properties=field_properties,
@@ -95,15 +99,22 @@ class GoClient:
     def find_citizen_folder(
         self,
         *,
-        person_full_name: str,
-        person_id: str,
         person_ssn: str,
+        person_full_name: str = "",
+        person_id: str = "",
         case_type_prefix: str = "BOR",
         category: str = "Borgermappe",
     ) -> list[Case]:
-        """Search for a citizen's folder (Borgermappe) by contact data + category."""
+        """Search for a citizen's folder (Borgermappe) by contact data + category.
+
+        Only ``person_ssn`` is required; name and id narrow the match when given.
+        """
         search = payloads.search_citizen_folder_data(
-            case_type_prefix, person_full_name, person_id, person_ssn, category=category
+            case_type_prefix,
+            person_ssn,
+            person_full_name=person_full_name,
+            person_id=person_id,
+            category=category,
         )
         return cases.find_case(self._session, base_url=self.base_url, search_data=search)
 

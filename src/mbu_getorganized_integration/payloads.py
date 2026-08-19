@@ -80,6 +80,15 @@ def _field_property(internal_name: str, value: str, comparison: str = "Equal") -
     }
 
 
+def _contact_data(person_full_name: str, person_id: str, person_ssn: str) -> str:
+    """Assemble the positional ``ows_CCMContactData`` match string.
+
+    The value is positional (``name;#id;#ssn;#;#``); only ``person_ssn`` need be
+    populated. An omitted name or id keeps its position as an empty string, so a
+    citizen can be matched on SSN alone (``;#;#{ssn};#;#``)."""
+    return f"{person_full_name};#{person_id};#{person_ssn};#;#"
+
+
 def _extend_field_properties(target: list, field_properties: dict) -> None:
     """Append caller-supplied field properties. A value may be a plain string
     (``ComparisonType`` defaults to ``"Equal"``) or a ``{"value": ...,
@@ -95,24 +104,23 @@ def _extend_field_properties(target: list, field_properties: dict) -> None:
 
 def generic_search_case_data(
     case_type_prefix: str,
-    person_full_name: str,
-    person_id: str,
     person_ssn: str,
     *,
+    person_full_name: str = "",
+    person_id: str = "",
     include_name: bool = True,
     returned_cases_number: str = "1",
     field_properties: dict | None = None,
 ) -> dict:
     """Search for a person's case folder by contact data (+ optional fields).
 
-    When ``include_name`` is False the name is omitted from the contact-data
-    match (``;#{id};#{ssn};#;#``) — matches shared-components exactly.
+    Only ``person_ssn`` is required; ``person_full_name`` and ``person_id``
+    narrow the match when given and are otherwise left empty. When
+    ``include_name`` is False the name is dropped from the match even if
+    supplied (``;#{id};#{ssn};#;#``) — matches shared-components exactly.
     """
-    contact_data = (
-        f"{person_full_name};#{person_id};#{person_ssn};#;#"
-        if include_name
-        else f";#{person_id};#{person_ssn};#;#"
-    )
+    name = person_full_name if include_name else ""
+    contact_data = _contact_data(name, person_id, person_ssn)
     search: dict = {
         "FieldProperties": [_field_property("ows_CCMContactData", contact_data)],
         "CaseTypePrefixes": [case_type_prefix],
@@ -147,18 +155,21 @@ def simple_search_case_data(
 
 def search_citizen_folder_data(
     case_type_prefix: str,
-    person_full_name: str,
-    person_id: str,
     person_ssn: str,
     *,
+    person_full_name: str = "",
+    person_id: str = "",
     category: str = "Borgermappe",
 ) -> dict:
-    """Search for a citizen folder: contact data + ``CaseCategory`` match."""
+    """Search for a citizen folder: contact data + ``CaseCategory`` match.
+
+    Only ``person_ssn`` is required; name and id narrow the match when given.
+    """
     return {
         "FieldProperties": [
             _field_property(
                 "ows_CCMContactData",
-                f"{person_full_name};#{person_id};#{person_ssn};#;#",
+                _contact_data(person_full_name, person_id, person_ssn),
             ),
             _field_property("ows_CaseCategory", category),
         ],
