@@ -1,9 +1,29 @@
 # GO consolidation — plan & status
 
-> **Status: READY TO BUILD (handoff written 2026-08-19).** Layout decision: the
-> **LAYERED ~9-file layout in §2** (owner's choice). The 3 open questions in §8 are
-> now answered (see §8). Build in a fresh session: read this file top-to-bottom,
-> then start at §7 step 1.
+> **Status: PACKAGE BUILT — §7 steps 1–4 done (2026-08-19).** The layered layout
+> in §2 is implemented (`_http`/`models`/`endpoints`/`payloads`/`cases`/`documents`/
+> `contacts`/`api`/`discovery`/`client`, `go.py` deleted). 77 passing tests, 2
+> skipped. Commits: `96e9a5d` (1) → `9034ff6` (2) → `57c391b` (3) → `f0089f6` (4)
+> on `task/go-consolidation` (not pushed).
+>
+> **Remaining before step 5 (consumer migration):**
+> 1. **Owner host-test** the write surface against a live GO instance, confirming
+>    the shapes that could NOT be verified on this machine (all marked
+>    `TODO(confirm on host)` in code):
+>    - `close_case` endpoint path + `{CaseId, Reason}` body (`endpoints.close_case`,
+>      `cases.close_case`) — mirrors OpenCase, unverified.
+>    - `upload_document` response id key — assumed `DocId` (falls back to
+>      `DocumentId`/`Id`), and that AddToCase wants base64 in `Bytes`.
+>    - `finalize` endpoint path (`endpoints.finalize`).
+>    - `search_documents` endpoint path + response row container.
+>    - `payloads.document_metadata_xml` — still raises `NotImplementedError`; the
+>      GO document-metadata `ows_` field names lived in MBU_Journalisering_service
+>      (`document_handler.py`), not on this machine. `GoClient.upload_document`
+>      works today only when given a pre-built `metadata` string (or none); the
+>      title/date/receiver/category convenience path raises until this is filled in.
+> 2. **Then §7 step 5** — swap `ats_fratag_formynd`'s `esdh_client.py` + luk's
+>    `CaseHandler` for `GoClient`, and drop `mbu-dev-shared-components[getorganized]`
+>    + the undeclared `mbu_getorganized_integration`. Separate PR, separate repo.
 >
 > **Base:** work on branch **`task/go-consolidation`**, already created off commit
 > **`c78b94c`** (which committed the prior working state — email→PDF WIP, the
