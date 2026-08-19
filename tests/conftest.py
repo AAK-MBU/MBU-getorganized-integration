@@ -17,6 +17,10 @@ class FakeResponse:
         self.status_code = status_code
         self._json = json_data
 
+    @property
+    def ok(self):
+        return self.status_code < 400
+
     def raise_for_status(self):
         if self.status_code >= 400:
             raise requests.HTTPError(f"status {self.status_code}")

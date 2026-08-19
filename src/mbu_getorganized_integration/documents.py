@@ -13,6 +13,7 @@ module in a later step.
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import time
@@ -20,8 +21,9 @@ import time
 import requests
 from requests_ntlm import HttpNtlmAuth
 
-from . import endpoints
+from . import endpoints, payloads
 from ._http import request
+from .models import SearchHit, UploadResult
 
 
 # ---------------------------------------------------------------------------
@@ -213,3 +215,177 @@ def pdf_convert(
         return None
 
     return r.content
+
+
+# ---------------------------------------------------------------------------
+# Write surface — upload / journalize / finalize (plan §4)
+# ---------------------------------------------------------------------------
+
+
+def upload_document(
+    s: requests.Session,
+    *,
+    base_url: str,
+    case_id: str,
+    filename: str,
+    data: bytes,
+    metadata: str = "",
+    overwrite: bool = False,
+    list_name: str = "Dokumenter",
+    folder_path: str = "",
+) -> UploadResult:
+    """Upload a document to a case (``/_goapi/Documents/AddToCase``).
+
+    ``data`` is the raw file bytes; they are base64-encoded into the ``Bytes``
+    field (GO's AddToCase expects base64, and raw bytes are not JSON-encodable).
+    ``metadata`` is a pre-built document ``<z:row>`` MetadataXml — the caller
+    builds it (note :func:`payloads.document_metadata_xml` is still a step-3
+    research item), or passes ``""`` to upload without extra metadata.
+
+    Returns an :class:`UploadResult` with the new GO document id.
+
+    TODO(confirm on host): the response id key. GO's AddToCase is expected to
+    return ``DocId``; ``DocumentId`` / ``Id`` are accepted as fallbacks. Confirm
+    the real key against a live instance.
+    """
+    encoded = base64.b64encode(data).decode("ascii")
+    body = payloads.document_data_json(
+        case_id=case_id,
+        list_name=list_name,
+        folder_path=folder_path,
+        filename=filename,
+        metadata=metadata,
+        overwrite=overwrite,
+        data=encoded,
+    )
+    r = request(s, "POST", endpoints.add_to_case(base_url), json=body)
+    resp = r.json()
+    raw_id = resp.get("DocId", resp.get("DocumentId", resp.get("Id")))
+    return UploadResult(document_id=int(raw_id) if raw_id is not None else 0, raw=resp)
+
+
+def mark_as_case_record(s: requests.Session, *, base_url: str, document_ids: list[int]) -> None:
+    """Journalize documents — mark them as case records
+    (``/_goapi/Documents/MarkMultipleAsCaseRecord/ByDocumentId``). Confirmed
+    request shape (shared-components ``mark_file_as_case_record``)."""
+    request(
+        s,
+        "POST",
+        endpoints.mark_as_case_record(base_url),
+        json={"DocumentIds": document_ids},
+    )
+
+
+def finalize_documents(s: requests.Session, *, base_url: str, document_ids: list[int]) -> None:
+    """Finalize documents. Confirmed request shape (shared-components
+    ``finalize_file``: ``{DocumentIds, ShouldCloseOpenTasks: False}``).
+
+    TODO(confirm on host): the endpoint path (see :func:`endpoints.finalize`)."""
+    request(
+        s,
+        "POST",
+        endpoints.finalize(base_url),
+        json={"DocumentIds": document_ids, "ShouldCloseOpenTasks": False},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Search (plan §4)
+# ---------------------------------------------------------------------------
+
+
+def _hits(rows) -> list[SearchHit]:
+    """Wrap raw search rows in :class:`SearchHit`, pulling the common (loosely
+    cased) columns and always keeping the full row in ``raw``."""
+    out: list[SearchHit] = []
+    for row in rows or []:
+        out.append(
+            SearchHit(
+                title=row.get("title") or row.get("Title"),
+                case_id=row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID"),
+                document_id=row.get("docid") or row.get("CCMDocID") or row.get("DocID"),
+                raw=row,
+            )
+        )
+    return out
+
+
+def search_documents(
+    s: requests.Session, *, base_url: str, term: str, limit: int = 500
+) -> list[SearchHit]:
+    """Legacy document search (shared-components ``search_documents`` shape).
+
+    TODO(confirm on host): both the endpoint path (see
+    :func:`endpoints.search_documents`) and the response row container — this
+    reads ``Rows`` then falls back to ``results.Results``. Confirm against GO.
+    """
+    payload = {
+        "SearchPhrase": term,
+        "AdditionalColumns": [],
+        "ResultLimit": limit,
+        "StartRow": 0,
+    }
+    r = request(s, "POST", endpoints.search_documents(base_url), json=payload)
+    data = r.json()
+    rows = data.get("Rows") or data.get("results", {}).get("Results") or []
+    return _hits(rows)
+
+
+def modern_search(
+    s: requests.Session,
+    *,
+    base_url: str,
+    term: str,
+    case_type_prefix: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    page_index: int = 1,
+    only_items: bool = True,
+) -> list[SearchHit]:
+    """Modern (document-library) search (shared-components ``modern_search`` shape).
+
+    Reads results from ``results.Results`` — the same container the confirmed
+    personalesag modern search returns (:func:`discovery.case_lookup_by_cpr`).
+
+    TODO(confirm on host): the per-row column keys used to populate
+    :class:`SearchHit` (``title`` etc.) — the full row is always in ``raw``.
+    """
+    date_filter = []
+    if start_date and end_date:
+        date_filter = [
+            {
+                "DisplayName": "Sag oprettet",
+                "Guid": None,
+                "InternalName": "Created",
+                "Type": "SPFieldType.DateTime",
+                "Value": f"{start_date}T22:00:00.000Z",
+                "ToValue": f"{end_date}T22:00:00.000Z",
+                "IsTaxId": False,
+                "DecodeCrawledName": False,
+                "IsOrCondition": None,
+                "MappedName": "CCMCreatedCASEPROP",
+            }
+        ]
+    payload = {
+        "QueryPageIndex": page_index,
+        "PageSize": 500,
+        "QueryPhrase": term,
+        "QueryType": "DocumentLibrary",
+        "TrimToOpenedCases": False,
+        "ResultTypeName": "Dokumenter",
+        "SearchContentDefinitionEntryType": 0,
+        "AdditionalSelectColumns": [],
+        "ResultTypeListNameOrType": None,
+        "ResultTypeSearchOnlyItems": only_items,
+        "ResultTypeQueryFilter": None,
+        "CaseQueryFieldCollection": date_filter,
+        "QueryFieldCollection": [],
+        "CaseTypePrefixes": [case_type_prefix],
+        "SortDirection1": 1,
+        "ResultViewSortOrder1": 2,
+        "ResultViewSortOrder2": 2,
+        "QueryScope": 0,
+    }
+    r = request(s, "POST", endpoints.modern_search(base_url), data=json.dumps(payload))
+    results = r.json().get("results", {}).get("Results", [])
+    return _hits(results)

@@ -6,11 +6,14 @@ converting the documents it yields into PDF. The GO primitives are vendored from
 deliberately out of scope (OCR runs in the consuming application).
 """
 
-from . import discovery, documents, models, pdf
+from . import api, cases, contacts, discovery, documents, models, pdf
 from .config import GoConfig, go_config_from_env
 from .models import GoDocument
 
 __all__ = [
+    "api",
+    "cases",
+    "contacts",
     "discovery",
     "documents",
     "models",
