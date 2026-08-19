@@ -72,8 +72,8 @@ class GoClient:
     def find_cases_by_contact(
         self,
         *,
-        case_type_prefix: str,
         person_ssn: str,
+        case_type_prefix: str = "BOR",
         person_full_name: str = "",
         person_id: str = "",
         include_name: bool = True,

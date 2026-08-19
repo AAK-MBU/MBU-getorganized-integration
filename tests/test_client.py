@@ -70,6 +70,13 @@ def test_find_citizen_folder_ssn_only(fake_session, make_response):
     assert [x.id for x in found] == ["BOR-2026-000001"]
 
 
+def test_find_cases_by_contact_ssn_only(fake_session, make_response):
+    resp = make_response(json_data={"CasesInfo": [{"CaseID": "BOR-2026-000001"}]})
+    c = _client(fake_session, {"/findbycaseproperties": resp})
+    found = c.find_cases_by_contact(person_ssn="1403820209")
+    assert [x.id for x in found] == ["BOR-2026-000001"]
+
+
 def test_open_and_close_case_hit_right_endpoints(fake_session, make_response):
     c = _client(fake_session, {
         "/OpenCase": make_response(json_data={}),
