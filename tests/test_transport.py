@@ -51,7 +51,7 @@ def test_endpoints_build_expected_paths():
     b = "https://go.example"
     assert endpoints.cases(b) == f"{b}/_goapi/Cases"
     assert endpoints.case_metadata(b, "PER-1") == f"{b}/_goapi/Cases/Metadata/PER-1"
-    assert endpoints.find_case(b) == f"{b}/_goapi/cases/findbycaseproperties"
+    assert endpoints.find_case(b) == f"{b}/_goapi/cases/FindByCaseProperties"
     assert endpoints.contact_lookup(b) == f"{b}/borgersager/_goapi/contacts/readitem"
     assert endpoints.contact_lookup(b, site="andet") == f"{b}/andet/_goapi/contacts/readitem"
     assert endpoints.document_data(b, "42") == f"{b}/_goapi/Documents/Data/42"

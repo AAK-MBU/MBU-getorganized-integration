@@ -28,7 +28,7 @@ def test_find_case_maps_casesinfo_rows(fake_session, make_response):
         {"CaseID": "BOR-2026-000001", "Title": "A"},
         {"CaseID": "BOR-2026-000002", "Title": "B"},
     ]})
-    s = fake_session({"/findbycaseproperties": resp})
+    s = fake_session({"/FindByCaseProperties": resp})
     search = payloads.search_citizen_folder_data("BOR", "Navn", "42", "1403820209")
 
     found = cases.find_case(s, base_url="https://go.example", search_data=search)
@@ -37,7 +37,7 @@ def test_find_case_maps_casesinfo_rows(fake_session, make_response):
 
 
 def test_find_case_empty_when_no_casesinfo(fake_session, make_response):
-    s = fake_session({"/findbycaseproperties": make_response(json_data={})})
+    s = fake_session({"/FindByCaseProperties": make_response(json_data={})})
     assert cases.find_case(s, base_url="https://go.example", search_data={}) == []
 
 

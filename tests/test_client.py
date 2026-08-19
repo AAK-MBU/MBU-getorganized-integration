@@ -56,7 +56,7 @@ def test_create_case_returns_case(fake_session, make_response):
 
 def test_find_citizen_folder_delegates(fake_session, make_response):
     resp = make_response(json_data={"CasesInfo": [{"CaseID": "BOR-2026-000001"}]})
-    c = _client(fake_session, {"/findbycaseproperties": resp})
+    c = _client(fake_session, {"/FindByCaseProperties": resp})
     found = c.find_citizen_folder(person_full_name="N", person_id="42", person_ssn="1403820209")
     assert [x.id for x in found] == ["BOR-2026-000001"]
 
