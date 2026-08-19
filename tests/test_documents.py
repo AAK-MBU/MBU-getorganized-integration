@@ -3,6 +3,8 @@
 import base64
 import json
 
+import pytest
+
 from mbu_getorganized_integration import documents
 from mbu_getorganized_integration.models import SearchHit, UploadResult
 
@@ -110,7 +112,9 @@ def test_modern_search_maps_results(fake_session, make_response):
     assert hits[0].title == "Brev" and hits[0].case_id == "PER-1" and hits[0].document_id == "55"
 
 
-def test_search_documents_reads_rows(fake_session, make_response):
+def test_search_documents_not_implemented(fake_session, make_response):
+    # Legacy Documents/Search is unverified on host — must raise rather than
+    # POST to an unconfirmed endpoint. To be wired up in a later change.
     s = fake_session({"/Documents/Search": make_response(json_data={"Rows": [{"Title": "Doc"}]})})
-    hits = documents.search_documents(s, base_url="https://go.example", term="q")
-    assert [h.title for h in hits] == ["Doc"]
+    with pytest.raises(NotImplementedError):
+        documents.search_documents(s, base_url="https://go.example", term="q")

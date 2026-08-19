@@ -315,20 +315,22 @@ def search_documents(
 ) -> list[SearchHit]:
     """Legacy document search (shared-components ``search_documents`` shape).
 
-    TODO(confirm on host): both the endpoint path (see
-    :func:`endpoints.search_documents`) and the response row container — this
-    reads ``Rows`` then falls back to ``results.Results``. Confirm against GO.
+    NOT IMPLEMENTED yet — unlike the rest of the surface, this endpoint has not
+    been verified against a live GO instance, so both the endpoint path (see
+    :func:`endpoints.search_documents`) and the response row container remain
+    unconfirmed. It raises rather than silently POST to an unverified endpoint;
+    to be wired up in a later change once confirmed on host.
+
+    The intended shape (from shared-components): POST
+    ``{"SearchPhrase", "AdditionalColumns": [], "ResultLimit", "StartRow": 0}``
+    and read rows from ``Rows`` (fallback ``results.Results``), mapped via
+    :func:`_hits`. For a working document search today use :func:`modern_search`.
     """
-    payload = {
-        "SearchPhrase": term,
-        "AdditionalColumns": [],
-        "ResultLimit": limit,
-        "StartRow": 0,
-    }
-    r = request(s, "POST", endpoints.search_documents(base_url), json=payload)
-    data = r.json()
-    rows = data.get("Rows") or data.get("results", {}).get("Results") or []
-    return _hits(rows)
+    raise NotImplementedError(
+        "search_documents: the legacy Documents/Search endpoint and response "
+        "shape are unverified on a live GO instance and will be wired up later. "
+        "Use modern_search for document search in the meantime."
+    )
 
 
 def modern_search(

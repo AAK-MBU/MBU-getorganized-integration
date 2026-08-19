@@ -220,6 +220,9 @@ class GoClient:
         )
 
     def search_documents(self, term: str, *, limit: int = 500) -> list[SearchHit]:
+        """Legacy document search. NOT IMPLEMENTED yet (raises) — its endpoint /
+        response shape is unverified on host; use :meth:`modern_search` instead.
+        """
         return documents.search_documents(
             self._session, base_url=self.base_url, term=term, limit=limit
         )
