@@ -35,7 +35,7 @@ def case_metadata(base_url: str, case_id: str) -> str:
 
 def find_case(base_url: str) -> str:
     """Search cases by properties (POST). Confirmed (esdh_client)."""
-    return f"{base_url}/_goapi/cases/findbycaseproperties"
+    return f"{base_url}/_goapi/cases/FindByCaseProperties"
 
 
 def open_case(base_url: str) -> str:
