@@ -5,8 +5,6 @@ fake session so delegation + payload-building can be checked with no network.
 """
 
 
-import pytest
-
 from mbu_getorganized_integration import GoClient
 from mbu_getorganized_integration.config import GoConfig
 from mbu_getorganized_integration.models import Case, ContactResult, UploadResult
@@ -80,12 +78,18 @@ def test_upload_document_passthrough_metadata(fake_session, make_response):
     assert isinstance(res, UploadResult) and res.document_id == 501
 
 
-def test_upload_document_field_metadata_is_still_a_research_item(fake_session, make_response):
-    c = _client(fake_session, {"/AddToCase": make_response(json_data={"DocId": 1})})
-    # Passing document fields routes through payloads.document_metadata_xml,
-    # which is deliberately NotImplemented until the GO shape is confirmed.
-    with pytest.raises(NotImplementedError):
-        c.upload_document(case_id="c", filename="f.pdf", data=b"x", title="Brev")
+def test_upload_document_builds_metadata_from_dict(fake_session, make_response):
+    c = _client(fake_session, {"/AddToCase": make_response(json_data={"DocId": 2})})
+    res = c.upload_document(
+        case_id="BOR-2026-000001",
+        filename="brev.pdf",
+        data=b"%PDF",
+        metadata={"title": "Brev", "date": "2026-08-19"},
+    )
+    assert isinstance(res, UploadResult) and res.document_id == 2
+    body = c._session.last_json
+    assert 'ows_Title="Brev"' in body["Metadata"]
+    assert 'ows_Dato="2026-08-19"' in body["Metadata"]
 
 
 def test_journalize_and_finalize_delegate(fake_session, make_response):

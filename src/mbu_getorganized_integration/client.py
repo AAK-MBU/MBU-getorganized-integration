@@ -182,38 +182,27 @@ class GoClient:
         case_id: str,
         filename: str,
         data: bytes,
-        metadata: str | None = None,
+        metadata: dict | None = None,
         overwrite: bool = False,
         list_name: str = "Dokumenter",
         folder_path: str = "",
-        title: str = "",
-        date: str = "",
-        receiver: str = "",
-        category: str = "",
     ) -> UploadResult:
         """Upload a document to a case.
 
-        Pass a pre-built ``metadata`` ``<z:row>`` string, or the
-        ``title``/``date``/``receiver``/``category`` fields to have it built.
-        NOTE: the field-based path calls :func:`payloads.document_metadata_xml`,
-        which is a step-3 research item (raises ``NotImplementedError`` until the
-        GO document-metadata field shape is confirmed). Passing ``metadata``
-        directly — or nothing — works today.
+        ``metadata`` is a field dict — the ``<z:row>`` MetadataXml is built from
+        it via :func:`payloads.document_metadata_xml`. Keys may be the friendly
+        names ``date`` / ``title`` / ``receiver`` / ``category`` or any raw
+        ``ows_...`` GO field name. Pass ``None`` / ``{}`` to upload without extra
+        metadata.
         """
-        if metadata is None:
-            if any((title, date, receiver, category)):
-                metadata = payloads.document_metadata_xml(
-                    date=date, title=title, receiver=receiver, category=category
-                )
-            else:
-                metadata = ""
+        metadata_xml = payloads.document_metadata_xml(metadata) if metadata else ""
         return documents.upload_document(
             self._session,
             base_url=self.base_url,
             case_id=case_id,
             filename=filename,
             data=data,
-            metadata=metadata,
+            metadata=metadata_xml,
             overwrite=overwrite,
             list_name=list_name,
             folder_path=folder_path,

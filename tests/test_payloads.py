@@ -1,7 +1,5 @@
 """Tests for the payload builders (plan §5). Pure functions — no network."""
 
-import pytest
-
 from mbu_getorganized_integration import payloads
 
 
@@ -144,7 +142,23 @@ def test_case_metadata_xml_escapes_special_chars():
     assert "O&amp;O" in xml
 
 
-def test_document_metadata_xml_not_implemented():
-    # Guardrail: must not silently emit a fabricated shape (plan §5 / §0.5).
-    with pytest.raises(NotImplementedError):
-        payloads.document_metadata_xml(title="x")
+def test_document_metadata_xml_maps_friendly_keys_and_skips_empty():
+    xml = payloads.document_metadata_xml(
+        {"date": "2026-08-19", "title": "Brev", "receiver": "", "category": None}
+    )
+    assert xml.startswith('<z:row xmlns:z="#RowsetSchema"') and xml.endswith("/>")
+    assert 'ows_Dato="2026-08-19"' in xml
+    assert 'ows_Title="Brev"' in xml
+    # empty / None fields are skipped entirely
+    assert "ows_Modtagere" not in xml
+    assert "ows_Korrespondance" not in xml
+
+
+def test_document_metadata_xml_passes_raw_ows_names_and_escapes():
+    xml = payloads.document_metadata_xml({"ows_Custom": "A & B", "title": "<x>"})
+    assert 'ows_Custom="A &amp; B"' in xml
+    assert 'ows_Title="&lt;x&gt;"' in xml
+
+
+def test_document_metadata_xml_empty_dict_is_bare_row():
+    assert payloads.document_metadata_xml({}) == '<z:row xmlns:z="#RowsetSchema" />'

@@ -12,10 +12,10 @@ All XML attribute values go through :func:`xml.sax.saxutils.escape` — the
 consumer escaped only on some paths, which this deliberately makes uniform
 (plan §5).
 
-TODO(step 3): ``document_metadata_xml`` (date / title / receiver / category) is
-NOT ported — its shape lived in MBU_Journalisering_service's
-``document_handler.py``, which is not on this machine. It is a research item for
-the write-surface step; see :func:`document_metadata_xml`.
+``document_metadata_xml`` builds the document ``<z:row>`` from a field dict,
+mirroring MBU_Journalisering_service's ``DocumentHandler.create_document_metadata``
+(case_manager/document_handler.py: ``ows_Dato`` / ``ows_Title`` /
+``ows_Modtagere`` / ``ows_Korrespondance``).
 """
 
 from __future__ import annotations
@@ -246,19 +246,35 @@ def case_metadata_xml(
     return "".join(parts)
 
 
-def document_metadata_xml(
-    *, date: str = "", title: str = "", receiver: str = "", category: str = ""
-) -> str:
-    """``<z:row>`` MetadataXml for an uploaded document.
+#: Friendly document-metadata keys → GO internal (``ows_``) field names.
+#: Field shapes match MBU_Journalisering_service's
+#: ``DocumentHandler.create_document_metadata`` (case_manager/document_handler.py).
+DOCUMENT_FIELD_ALIASES = {
+    "date": "ows_Dato",
+    "title": "ows_Title",
+    "receiver": "ows_Modtagere",
+    "category": "ows_Korrespondance",
+}
 
-    TODO(step 3): NOT IMPLEMENTED — the exact ``ows_...`` field names for a
-    document's metadata lived in MBU_Journalisering_service's
-    ``document_handler.py``, which is not on this machine. Inventing field names
-    here would silently mis-journalize, so this raises until the shape is
-    confirmed against a live GO instance (plan §5, §0.5).
+
+def document_metadata_xml(metadata: dict) -> str:
+    """``<z:row>`` MetadataXml for an uploaded document, built from a field dict.
+
+    Keys may be the friendly names ``date`` / ``title`` / ``receiver`` /
+    ``category`` (mapped to ``ows_Dato`` / ``ows_Title`` / ``ows_Modtagere`` /
+    ``ows_Korrespondance`` — matching MBU_Journalisering_service's
+    ``DocumentHandler.create_document_metadata``) or any raw ``ows_...`` GO
+    internal name for a field without a friendly alias.
+
+    Empty / ``None`` values are skipped (GO rejects an empty attribute, and the
+    reference handler only emits populated fields); every value is XML-escaped
+    (the reference escaped nothing — this makes it uniform, plan §5).
     """
-    raise NotImplementedError(
-        "document_metadata_xml: GO document metadata field names are unverified "
-        "on this machine (see MBU_Journalisering_service/document_handler.py). "
-        "Confirm the ows_ field shape before wiring the upload surface (step 3)."
-    )
+    parts = ['<z:row xmlns:z="#RowsetSchema" ']
+    for key, value in metadata.items():
+        if value is None or value == "":
+            continue
+        internal = DOCUMENT_FIELD_ALIASES.get(key, key)
+        parts.append(f'{internal}="{escape(str(value))}" ')
+    parts.append("/>")
+    return "".join(parts)

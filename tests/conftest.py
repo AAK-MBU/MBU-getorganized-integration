@@ -37,23 +37,27 @@ class FakeSession:
     def __init__(self, routes):
         self.routes = {k: (v if isinstance(v, list) else [v]) for k, v in routes.items()}
         self.calls = []
+        self.bodies = []          # json body of each call, in order
+        self.last_json = None     # json body of the most recent call
         self.auth = None
 
-    def _resolve(self, url):
+    def _resolve(self, url, **kwargs):
         self.calls.append(url)
+        self.last_json = kwargs.get("json")
+        self.bodies.append(self.last_json)
         for needle, responses in self.routes.items():
             if needle in url:
                 return responses.pop(0) if len(responses) > 1 else responses[0]
         return FakeResponse(status_code=404)
 
     def get(self, url, **kwargs):
-        return self._resolve(url)
+        return self._resolve(url, **kwargs)
 
     def post(self, url, **kwargs):
-        return self._resolve(url)
+        return self._resolve(url, **kwargs)
 
     def request(self, method, url, **kwargs):
-        return self._resolve(url)
+        return self._resolve(url, **kwargs)
 
 
 @pytest.fixture
