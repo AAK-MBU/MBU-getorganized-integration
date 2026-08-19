@@ -7,10 +7,12 @@ deliberately out of scope (OCR runs in the consuming application).
 """
 
 from . import api, cases, contacts, discovery, documents, models, pdf
+from .client import GoClient
 from .config import GoConfig, go_config_from_env
 from .models import GoDocument
 
 __all__ = [
+    "GoClient",
     "api",
     "cases",
     "contacts",
