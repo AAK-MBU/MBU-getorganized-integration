@@ -68,12 +68,10 @@ def open_case(
 def close_case(
     s: requests.Session, *, base_url: str, case_id: str, reason: str | None = None
 ) -> None:
-    """Close a case. ``ats_fratag_formynd/luk`` needs this (plan §0.5).
+    """Close a case (``/_goapi/Cases/CloseCase``). Used by ``ats_fratag_formynd/luk``.
 
-    TODO(confirm on host): the ``CloseCase`` endpoint path (see
-    :func:`endpoints.close_case`) and this ``{CaseId, Reason}`` body mirror the
-    confirmed ``OpenCase`` shape but are UNVERIFIED against GO — confirm before
-    relying on it in production.
+    Endpoint path and ``{CaseId, Reason}`` body are host-verified against GO
+    (mirrors the ``OpenCase`` shape).
     """
     payload = {"CaseId": case_id}
     if reason:
