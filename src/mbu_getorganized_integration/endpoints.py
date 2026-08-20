@@ -44,9 +44,7 @@ def open_case(base_url: str) -> str:
 
 
 def close_case(base_url: str) -> str:
-    """Close a case (POST). TODO(step 3): CONFIRM — ats_fratag_formynd/luk needs
-    this and it exists in neither package (plan §0.5). ``CloseCase`` mirrors the
-    confirmed ``OpenCase`` shape but is unverified against GO."""
+    """Close a case (POST). Host-verified against GO; used by ats_fratag_formynd/luk."""
     return f"{base_url}/_goapi/Cases/CloseCase"
 
 
