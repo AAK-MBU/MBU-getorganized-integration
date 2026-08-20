@@ -206,4 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-/manual_tests/
+# Manual live-GO harness: track live_go.py + .env.example, keep the real
+# secrets-bearing .env untracked (also covered by the global .env rule above).
+/manual_tests/.env
