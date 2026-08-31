@@ -6,6 +6,8 @@ substring. Exposed as fixtures (``fake_session`` / ``make_response``) returning
 the classes, so each test builds its own routing table.
 """
 
+import json
+
 import pytest
 import requests
 
@@ -29,6 +31,17 @@ class FakeResponse:
         return self._json
 
 
+def _decode(data):
+    """Best-effort decode of a pre-serialized request body; ``None`` if it is
+    absent or not JSON (e.g. a raw file upload)."""
+    if not isinstance(data, (str, bytes)):
+        return None
+    try:
+        return json.loads(data)
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+
 class FakeSession:
     """Replays canned responses keyed by URL substring, shared by
     get/post/request. A route value may be a single response or a list returned
@@ -37,13 +50,17 @@ class FakeSession:
     def __init__(self, routes):
         self.routes = {k: (v if isinstance(v, list) else [v]) for k, v in routes.items()}
         self.calls = []
-        self.bodies = []          # json body of each call, in order
-        self.last_json = None     # json body of the most recent call
+        self.bodies = []          # decoded body of each call, in order
+        self.last_json = None     # decoded body of the most recent call
         self.auth = None
 
     def _resolve(self, url, **kwargs):
         self.calls.append(url)
         self.last_json = kwargs.get("json")
+        if self.last_json is None:
+            # Some calls pre-serialize the payload into data= instead of json=;
+            # decode it so assertions can reach the body either way.
+            self.last_json = _decode(kwargs.get("data"))
         self.bodies.append(self.last_json)
         for needle, responses in self.routes.items():
             if needle in url:
