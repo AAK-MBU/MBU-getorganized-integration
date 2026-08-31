@@ -295,19 +295,9 @@ def finalize_documents(s: requests.Session, *, base_url: str, document_ids: list
 
 
 def _hits(rows) -> list[SearchHit]:
-    """Wrap raw search rows in :class:`SearchHit`, pulling the common (loosely
-    cased) columns and always keeping the full row in ``raw``."""
-    out: list[SearchHit] = []
-    for row in rows or []:
-        out.append(
-            SearchHit(
-                title=row.get("title") or row.get("Title"),
-                case_id=row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID"),
-                document_id=row.get("docid") or row.get("CCMDocID") or row.get("DocID"),
-                raw=row,
-            )
-        )
-    return out
+    """Wrap raw search rows in :class:`SearchHit` (see
+    :meth:`SearchHit.from_row` for the column mapping)."""
+    return [SearchHit.from_row(row) for row in rows or []]
 
 
 def search_documents(

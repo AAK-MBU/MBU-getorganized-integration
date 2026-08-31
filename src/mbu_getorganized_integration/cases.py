@@ -14,11 +14,13 @@ functions own only the transport + typed parse.
 
 from __future__ import annotations
 
+import json
+
 import requests
 
 from . import endpoints, payloads
 from ._http import request
-from .models import Case
+from .models import Case, SearchHit
 
 
 def create_case(
@@ -36,7 +38,9 @@ def create_case(
     here — they differ only in the MetadataXml the caller supplies. Returns the
     created :class:`Case` (``id`` = GO ``CaseID``). Confirmed shape (esdh_client).
     """
-    body = payloads.case_data_json(case_type_prefix, metadata_xml, return_when_fully_created)
+    body = payloads.case_data_json(
+        case_type_prefix, metadata_xml, return_when_fully_created
+    )
     r = request(s, "POST", endpoints.cases(base_url), json=body)
     data = r.json()
     return Case(id=data["CaseID"], raw=data)
@@ -87,3 +91,40 @@ def get_case_metadata(s: requests.Session, *, base_url: str, case_id: str) -> di
     """
     r = request(s, "GET", endpoints.case_metadata(base_url, case_id))
     return r.json()
+
+
+def case_modern_search(
+    s: requests.Session, *, base_url: str, term: str, case_type_prefix: str
+) -> list[SearchHit]:
+    """Modern search scoped to cases (``QueryType: "Cases"``).
+
+    The case-side counterpart to :func:`documents.modern_search`: same
+    ``ExecuteModernSearch`` endpoint, a case query instead of a document-library
+    one, restricted to the given case type prefix and to opened cases. Rows are
+    read from ``results.Results`` — the container the confirmed personalesag
+    case search returns (:func:`discovery.case_lookup_by_cpr`) — and mapped via
+    :meth:`SearchHit.from_row`, which keeps the full row in ``raw``.
+    """
+    payload = {
+        "QueryPageIndex": 1,
+        "PageSize": 0,
+        "QueryPhrase": term,
+        "QueryType": "Cases",
+        "TrimToOpenedCases": True,
+        "ResultTypeName": "Oversager",
+        "SearchContentDefinitionEntryType": 2,
+        "AdditionalSelectColumns": [],
+        "ResultTypeListNameOrType": None,
+        "ResultTypeSearchOnlyItems": True,
+        "ResultTypeQueryFilter": f'-ccmparentcase:"{case_type_prefix}"',
+        "CaseQueryFieldCollection": [],
+        "QueryFieldCollection": [],
+        "CaseTypePrefixes": [case_type_prefix],
+        "SortDirection1": 1,
+        "ResultViewSortOrder1": 2,
+        "ResultViewSortOrder2": 2,
+        "QueryScope": 0,
+    }
+    r = request(s, "POST", endpoints.modern_search(base_url), data=json.dumps(payload))
+    results = r.json().get("results", {}).get("Results", [])
+    return [SearchHit.from_row(row) for row in results or []]

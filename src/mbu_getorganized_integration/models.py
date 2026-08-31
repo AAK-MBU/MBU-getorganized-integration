@@ -115,3 +115,23 @@ class SearchHit:
     case_id: str | None = None
     document_id: str | None = None
     raw: dict = field(default_factory=dict, repr=False)
+
+    @classmethod
+    def from_row(cls, row: dict) -> "SearchHit":
+        """Build a hit from one search row, pulling the common (loosely cased)
+        columns and always keeping the full row in ``raw``.
+
+        ``case_id`` falls back to the trailing segment of ``caseurl``
+        (``cases/<akt-prefix>/<case-id>``), which case rows carry even when the
+        ``CCMCaseID`` column was not selected.
+        """
+        case_id = row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID")
+        if not case_id:
+            case_url = row.get("caseurl") or ""
+            case_id = case_url.rstrip("/").split("/")[-1] or None
+        return cls(
+            title=row.get("title") or row.get("Title"),
+            case_id=case_id,
+            document_id=row.get("docid") or row.get("CCMDocID") or row.get("DocID"),
+            raw=row,
+        )

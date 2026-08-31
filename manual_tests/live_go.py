@@ -49,7 +49,6 @@ from pathlib import Path
 # Import the installed package. Run from the repo root (or `pip install -e .`).
 from mbu_getorganized_integration import GoClient  # noqa: E402
 
-
 # ==============================================================================
 # Config — loaded from manual_tests/.env (see .env.example). No values live in
 # this file; the real environment overrides the .env for the same key.
@@ -110,8 +109,8 @@ def _json(key: str, default):
 
 
 # --- citizen / contact -------------------------------------------------------
-SSN = _cfg("SSN")                       # contact_lookup, find_cases_by_contact,
-                                        # find_citizen_folder, find_documents
+SSN = _cfg("SSN")  # contact_lookup, find_cases_by_contact,
+# find_citizen_folder, find_documents
 PERSON_FULL_NAME = _cfg("PERSON_FULL_NAME")
 PERSON_ID = _cfg("PERSON_ID")
 CONTACT_SITE = _cfg("CONTACT_SITE", "borgersager")
@@ -123,20 +122,20 @@ RETURNED_CASES_NUMBER = _cfg("RETURNED_CASES_NUMBER", "1")
 SEARCH_FIELD_PROPERTIES: dict = _json("SEARCH_FIELD_PROPERTIES", {})
 
 # --- existing case id --------------------------------------------------------
-CASE_ID = _cfg("CASE_ID")               # open_case, close_case,
-                                        # get_case_metadata, upload_document
+CASE_ID = _cfg("CASE_ID")  # open_case, close_case,
+# get_case_metadata, upload_document
 CASE_REASON: str | None = _opt("CASE_REASON")
 
 # --- create_case (write!) — JSON dict of GoClient.create_case kwargs ---------
 CREATE_CASE: dict = _json("CREATE_CASE", {})
 
 # --- documents ---------------------------------------------------------------
-DOK_ID = _cfg("DOK_ID")                 # document_metadata, download,
-                                        # convert_to_pdf, parents, children
-VERSION_UI = _cfg("VERSION_UI")         # convert_to_pdf (e.g. "1.0")
-DOWNLOAD_PATH = _cfg("DOWNLOAD_PATH")   # local file path for download()
+DOK_ID = _cfg("DOK_ID")  # document_metadata, download,
+# convert_to_pdf, parents, children
+VERSION_UI = _cfg("VERSION_UI")  # convert_to_pdf (e.g. "1.0")
+DOWNLOAD_PATH = _cfg("DOWNLOAD_PATH")  # local file path for download()
 DOCUMENT_IDS: list[int] = _json("DOCUMENT_IDS", [])  # journalize/finalize
-SEARCH_TERM = _cfg("SEARCH_TERM")       # search_documents, modern_search
+SEARCH_TERM = _cfg("SEARCH_TERM")  # search_documents, modern_search
 SEARCH_START: str | None = _opt("SEARCH_START")
 SEARCH_END: str | None = _opt("SEARCH_END")
 
@@ -251,6 +250,17 @@ def find_citizen_folder(c: GoClient):
         print("  ->", h.id)
 
 
+@test
+def case_modern_search(c: GoClient):
+    """Search for cases using modern search"""
+    _req("CASE_TYPE_PREFIX", CASE_TYPE_PREFIX)
+    _req("SEARCH_TERM", SEARCH_TERM)
+
+    hits = c.case_modern_search(SEARCH_TERM, case_type_prefix=CASE_TYPE_PREFIX)
+    for h in hits:
+        print("  ->", h.case_id)
+
+
 # ---- cases (write) ----------------------------------------------------------
 
 
@@ -354,8 +364,11 @@ def search_documents(c: GoClient):
 def modern_search(c: GoClient):
     """Modern document search (optionally date-bounded)."""
     _req("SEARCH_TERM", SEARCH_TERM)
-    hits = c.modern_search(
-        SEARCH_TERM, case_type_prefix=CASE_TYPE_PREFIX, start=SEARCH_START, end=SEARCH_END
+    hits = c.document_modern_search(
+        SEARCH_TERM,
+        case_type_prefix=CASE_TYPE_PREFIX,
+        start=SEARCH_START,
+        end=SEARCH_END,
     )
     for h in hits:
         print("  ->", h.document_id, h.title)
@@ -422,8 +435,12 @@ def find_documents(c: GoClient):
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("tests", nargs="*", help="names of tests to run")
-    parser.add_argument("--list", action="store_true", help="list available tests and exit")
-    parser.add_argument("--all", action="store_true", help="run every test (skips blank ones)")
+    parser.add_argument(
+        "--list", action="store_true", help="list available tests and exit"
+    )
+    parser.add_argument(
+        "--all", action="store_true", help="run every test (skips blank ones)"
+    )
     args = parser.parse_args(argv)
 
     if args.list or (not args.tests and not args.all):
@@ -445,7 +462,9 @@ def main(argv: list[str]) -> int:
         print(f"\n=== {name} ===")
         try:
             _TESTS[name](client)
-        except SystemExit as exc:  # unset variable, when running --all: skip, don't abort
+        except (
+            SystemExit
+        ) as exc:  # unset variable, when running --all: skip, don't abort
             print(exc)
             if args.all:
                 continue
