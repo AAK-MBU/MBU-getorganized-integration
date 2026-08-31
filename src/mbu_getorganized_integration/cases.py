@@ -20,7 +20,22 @@ import requests
 
 from . import endpoints, payloads
 from ._http import request
-from .models import Case
+from .models import Case, SearchHit
+
+
+def _hits(rows) -> list[SearchHit]:
+    """Wrap raw search rows in :class:`SearchHit`, pulling the common (loosely
+    cased) columns and always keeping the full row in ``raw``."""
+    out: list[SearchHit] = []
+    for row in rows or []:
+        out.append(
+            SearchHit(
+                title=row.get("title") or row.get("Title"),
+                case_id=row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID"),
+                raw=row,
+            )
+        )
+    return out
 
 
 def create_case(
@@ -117,5 +132,6 @@ def case_modern_search(
         "QueryScope": 0,
     }
     r = request(s, "POST", endpoints.modern_search(base_url), data=json.dumps(payload))
+    results = r.json().get("results", {}).get("Results", [])
 
-    return r.json()
+    return _hits(results)
