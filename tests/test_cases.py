@@ -76,6 +76,7 @@ def test_case_modern_search_maps_results(fake_session, make_response):
     assert [h.case_id for h in hits] == ["BOR-2026-000001", "BOR-2026-000002"]
     assert [h.title for h in hits] == ["Sag A", "Sag B"]
     assert [h.case_owner for h in hits] == ["AZ12345", None]
+    assert [h.case_url for h in hits] == [None, "cases/BOR/BOR-2026-000002"]
     assert hits[0].raw["CCMCaseID"] == "BOR-2026-000001"
 
 
