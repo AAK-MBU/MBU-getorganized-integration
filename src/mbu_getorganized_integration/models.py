@@ -113,6 +113,8 @@ class SearchHit:
 
     title: str | None = None
     case_id: str | None = None
+    case_url: str | None = None
+    case_owner: str | None = None
     document_id: str | None = None
     raw: dict = field(default_factory=dict, repr=False)
 
@@ -121,17 +123,29 @@ class SearchHit:
         """Build a hit from one search row, pulling the common (loosely cased)
         columns and always keeping the full row in ``raw``.
 
-        ``case_id`` falls back to the trailing segment of ``caseurl``
-        (``cases/<akt-prefix>/<case-id>``), which case rows carry even when the
-        ``CCMCaseID`` column was not selected.
+        ``case_url`` is the row's ``caseurl`` — a site-relative path shaped
+        ``cases/<akt-prefix>/<case-id>``, not an absolute URL; prefix it with
+        the GO base url to open the case in a browser. ``case_id`` falls back to
+        its trailing segment, which case rows carry even when the ``CCMCaseID``
+        column was not selected.
+
+        ``case_owner`` is only populated when the search asked for the
+        ``CCMCaseOwner`` column (see the ``AdditionalSelectColumns`` of
+        :func:`cases.case_modern_search`); it is ``None`` otherwise.
         """
+        case_url = row.get("caseurl") or row.get("CaseUrl") or row.get("CaseURL")
         case_id = row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID")
-        if not case_id:
-            case_url = row.get("caseurl") or ""
+        if not case_id and case_url:
             case_id = case_url.rstrip("/").split("/")[-1] or None
         return cls(
             title=row.get("title") or row.get("Title"),
             case_id=case_id,
+            case_url=case_url,
+            case_owner=(
+                row.get("ccmcaseowner")
+                or row.get("CCMCaseOwner")
+                or row.get("CaseOwner")
+            ),
             document_id=row.get("docid") or row.get("CCMDocID") or row.get("DocID"),
             raw=row,
         )

@@ -146,3 +146,11 @@ def test_case_modern_search_delegates(fake_session, make_response):
     c = _client(fake_session, {"/ExecuteModernSearch": resp})
     hits = c.case_modern_search("q", case_type_prefix="BOR")
     assert [h.case_id for h in hits] == ["BOR-2026-000001"]
+
+
+def test_case_modern_search_exposes_case_owner(fake_session, make_response):
+    resp = make_response(json_data={"results": {"Results": [
+        {"CCMCaseID": "BOR-2026-000001", "ccmcaseowner": "AZ12345"},
+    ]}})
+    c = _client(fake_session, {"/ExecuteModernSearch": resp})
+    assert c.case_modern_search("q", case_type_prefix="BOR")[0].case_owner == "AZ12345"
