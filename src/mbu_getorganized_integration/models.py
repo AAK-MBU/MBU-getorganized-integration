@@ -113,6 +113,7 @@ class SearchHit:
 
     title: str | None = None
     case_id: str | None = None
+    case_owner: str | None = None
     document_id: str | None = None
     raw: dict = field(default_factory=dict, repr=False)
 
@@ -124,6 +125,10 @@ class SearchHit:
         ``case_id`` falls back to the trailing segment of ``caseurl``
         (``cases/<akt-prefix>/<case-id>``), which case rows carry even when the
         ``CCMCaseID`` column was not selected.
+
+        ``case_owner`` is only populated when the search asked for the
+        ``CCMCaseOwner`` column (see the ``AdditionalSelectColumns`` of
+        :func:`cases.case_modern_search`); it is ``None`` otherwise.
         """
         case_id = row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID")
         if not case_id:
@@ -132,6 +137,11 @@ class SearchHit:
         return cls(
             title=row.get("title") or row.get("Title"),
             case_id=case_id,
+            case_owner=(
+                row.get("ccmcaseowner")
+                or row.get("CCMCaseOwner")
+                or row.get("CaseOwner")
+            ),
             document_id=row.get("docid") or row.get("CCMDocID") or row.get("DocID"),
             raw=row,
         )

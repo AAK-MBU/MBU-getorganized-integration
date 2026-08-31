@@ -258,7 +258,7 @@ def case_modern_search(c: GoClient):
 
     hits = c.case_modern_search(SEARCH_TERM, case_type_prefix=CASE_TYPE_PREFIX)
     for h in hits:
-        print("  ->", h.case_id)
+        print("  ->", h.case_id, h.case_owner, h.title)
 
 
 # ---- cases (write) ----------------------------------------------------------

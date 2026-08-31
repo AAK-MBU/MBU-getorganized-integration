@@ -104,6 +104,9 @@ def case_modern_search(
     read from ``results.Results`` — the container the confirmed personalesag
     case search returns (:func:`discovery.case_lookup_by_cpr`) — and mapped via
     :meth:`SearchHit.from_row`, which keeps the full row in ``raw``.
+
+    Selects the ``CCMCaseOwner`` column so the case owner is readable straight
+    off the hit (``SearchHit.case_owner``) without a follow-up metadata call.
     """
     payload = {
         "QueryPageIndex": 1,
@@ -113,7 +116,9 @@ def case_modern_search(
         "TrimToOpenedCases": True,
         "ResultTypeName": "Oversager",
         "SearchContentDefinitionEntryType": 2,
-        "AdditionalSelectColumns": [],
+        # GO only returns the columns the query asks for beyond the default set;
+        # CCMCaseOwner backs SearchHit.case_owner.
+        "AdditionalSelectColumns": ["CCMCaseOwner"],
         "ResultTypeListNameOrType": None,
         "ResultTypeSearchOnlyItems": True,
         "ResultTypeQueryFilter": f'-ccmparentcase:"{case_type_prefix}"',

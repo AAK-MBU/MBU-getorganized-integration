@@ -67,7 +67,7 @@ def test_create_case_raises_on_http_error(fake_session, make_response):
 
 def test_case_modern_search_maps_results(fake_session, make_response):
     s = fake_session({"/ExecuteModernSearch": make_response(json_data={"results": {"Results": [
-        {"title": "Sag A", "CCMCaseID": "BOR-2026-000001"},
+        {"title": "Sag A", "CCMCaseID": "BOR-2026-000001", "ccmcaseowner": "AZ12345"},
         {"title": "Sag B", "caseurl": "cases/BOR/BOR-2026-000002"},
     ]}})})
     hits = cases.case_modern_search(
@@ -75,7 +75,16 @@ def test_case_modern_search_maps_results(fake_session, make_response):
     )
     assert [h.case_id for h in hits] == ["BOR-2026-000001", "BOR-2026-000002"]
     assert [h.title for h in hits] == ["Sag A", "Sag B"]
+    assert [h.case_owner for h in hits] == ["AZ12345", None]
     assert hits[0].raw["CCMCaseID"] == "BOR-2026-000001"
+
+
+def test_case_modern_search_selects_case_owner_column(fake_session, make_response):
+    s = fake_session({"/ExecuteModernSearch": make_response(json_data={})})
+    cases.case_modern_search(
+        s, base_url="https://go.example", term="x", case_type_prefix="BOR"
+    )
+    assert s.bodies[0]["AdditionalSelectColumns"] == ["CCMCaseOwner"]
 
 
 def test_case_modern_search_empty_when_no_results(fake_session, make_response):
