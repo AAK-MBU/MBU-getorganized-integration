@@ -63,3 +63,23 @@ def test_create_case_raises_on_http_error(fake_session, make_response):
     s = fake_session({"/_goapi/Cases": make_response(status_code=500)})
     with pytest.raises(requests.HTTPError):
         cases.create_case(s, base_url="https://go.example", case_type_prefix="PER", metadata_xml="<z:row/>")
+
+
+def test_case_modern_search_maps_results(fake_session, make_response):
+    s = fake_session({"/ExecuteModernSearch": make_response(json_data={"results": {"Results": [
+        {"title": "Sag A", "CCMCaseID": "BOR-2026-000001"},
+        {"title": "Sag B", "caseurl": "cases/BOR/BOR-2026-000002"},
+    ]}})})
+    hits = cases.case_modern_search(
+        s, base_url="https://go.example", term="Sag", case_type_prefix="BOR"
+    )
+    assert [h.case_id for h in hits] == ["BOR-2026-000001", "BOR-2026-000002"]
+    assert [h.title for h in hits] == ["Sag A", "Sag B"]
+    assert hits[0].raw["CCMCaseID"] == "BOR-2026-000001"
+
+
+def test_case_modern_search_empty_when_no_results(fake_session, make_response):
+    s = fake_session({"/ExecuteModernSearch": make_response(json_data={})})
+    assert cases.case_modern_search(
+        s, base_url="https://go.example", term="x", case_type_prefix="BOR"
+    ) == []

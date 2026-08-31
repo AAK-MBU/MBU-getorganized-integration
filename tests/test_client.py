@@ -106,7 +106,7 @@ def test_journalize_and_finalize_delegate(fake_session, make_response):
 def test_modern_search_delegates(fake_session, make_response):
     resp = make_response(json_data={"results": {"Results": [{"title": "Doc", "CCMDocID": "9"}]}})
     c = _client(fake_session, {"/ExecuteModernSearch": resp})
-    hits = c.modern_search("q", case_type_prefix="PER")
+    hits = c.document_modern_search("q", case_type_prefix="PER")
     assert [h.title for h in hits] == ["Doc"] and hits[0].document_id == "9"
 
 
@@ -139,3 +139,10 @@ def test_find_documents_delegates(fake_session, make_response):
     })
     found = c.find_documents(cpr="1403820209")
     assert (found[0].dok_id, found[0].ext) == ("55", "pdf")
+
+
+def test_case_modern_search_delegates(fake_session, make_response):
+    resp = make_response(json_data={"results": {"Results": [{"CCMCaseID": "BOR-2026-000001"}]}})
+    c = _client(fake_session, {"/ExecuteModernSearch": resp})
+    hits = c.case_modern_search("q", case_type_prefix="BOR")
+    assert [h.case_id for h in hits] == ["BOR-2026-000001"]

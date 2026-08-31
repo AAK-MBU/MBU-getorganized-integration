@@ -256,7 +256,7 @@ def case_modern_search(c: GoClient):
     _req("CASE_TYPE_PREFIX", CASE_TYPE_PREFIX)
     _req("SEARCH_TERM", SEARCH_TERM)
 
-    hits = c.case_modern_search(term=SEARCH_TERM, case_type_prefix=CASE_TYPE_PREFIX)
+    hits = c.case_modern_search(SEARCH_TERM, case_type_prefix=CASE_TYPE_PREFIX)
     for h in hits:
         print("  ->", h.case_id)
 
@@ -364,7 +364,7 @@ def search_documents(c: GoClient):
 def modern_search(c: GoClient):
     """Modern document search (optionally date-bounded)."""
     _req("SEARCH_TERM", SEARCH_TERM)
-    hits = c.modern_search(
+    hits = c.document_modern_search(
         SEARCH_TERM,
         case_type_prefix=CASE_TYPE_PREFIX,
         start=SEARCH_START,

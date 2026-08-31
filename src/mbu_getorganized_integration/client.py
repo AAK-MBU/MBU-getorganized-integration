@@ -202,7 +202,7 @@ class GoClient:
             self._session, base_url=self.base_url, case_id=case_id
         )
 
-    def case_modern_search(self, term: str, case_type_prefix: str) -> dict:
+    def case_modern_search(self, term: str, *, case_type_prefix: str) -> list[SearchHit]:
         return cases.case_modern_search(
             self._session,
             base_url=self.base_url,

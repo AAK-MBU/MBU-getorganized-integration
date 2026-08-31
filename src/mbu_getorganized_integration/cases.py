@@ -23,21 +23,6 @@ from ._http import request
 from .models import Case, SearchHit
 
 
-def _hits(rows) -> list[SearchHit]:
-    """Wrap raw search rows in :class:`SearchHit`, pulling the common (loosely
-    cased) columns and always keeping the full row in ``raw``."""
-    out: list[SearchHit] = []
-    for row in rows or []:
-        out.append(
-            SearchHit(
-                title=row.get("title") or row.get("Title"),
-                case_id=row.get("caseid") or row.get("CCMCaseID") or row.get("CaseID"),
-                raw=row,
-            )
-        )
-    return out
-
-
 def create_case(
     s: requests.Session,
     *,
@@ -110,7 +95,16 @@ def get_case_metadata(s: requests.Session, *, base_url: str, case_id: str) -> di
 
 def case_modern_search(
     s: requests.Session, *, base_url: str, term: str, case_type_prefix: str
-) -> dict:
+) -> list[SearchHit]:
+    """Modern search scoped to cases (``QueryType: "Cases"``).
+
+    The case-side counterpart to :func:`documents.modern_search`: same
+    ``ExecuteModernSearch`` endpoint, a case query instead of a document-library
+    one, restricted to the given case type prefix and to opened cases. Rows are
+    read from ``results.Results`` — the container the confirmed personalesag
+    case search returns (:func:`discovery.case_lookup_by_cpr`) — and mapped via
+    :meth:`SearchHit.from_row`, which keeps the full row in ``raw``.
+    """
     payload = {
         "QueryPageIndex": 1,
         "PageSize": 0,
@@ -133,5 +127,4 @@ def case_modern_search(
     }
     r = request(s, "POST", endpoints.modern_search(base_url), data=json.dumps(payload))
     results = r.json().get("results", {}).get("Results", [])
-
-    return _hits(results)
+    return [SearchHit.from_row(row) for row in results or []]
