@@ -21,7 +21,12 @@ class GoClient:
     """Session-backed façade over the GO API."""
 
     def __init__(
-        self, base_url: str, username: str, password: str, *, libreoffice_path: str | None = None
+        self,
+        base_url: str,
+        username: str,
+        password: str,
+        *,
+        libreoffice_path: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.libreoffice_path = libreoffice_path
@@ -34,7 +39,10 @@ class GoClient:
     @classmethod
     def from_config(cls, cfg: GoConfig) -> "GoClient":
         return cls(
-            cfg.base_url, cfg.username, cfg.password, libreoffice_path=cfg.libreoffice_path
+            cfg.base_url,
+            cfg.username,
+            cfg.password,
+            libreoffice_path=cfg.libreoffice_path,
         )
 
     @classmethod
@@ -48,7 +56,9 @@ class GoClient:
         return api.health_check(self._session, base_url=self.base_url)
 
     def contact_lookup(self, ssn: str, *, site: str = "borgersager") -> ContactResult:
-        return contacts.contact_lookup(self._session, base_url=self.base_url, ssn=ssn, site=site)
+        return contacts.contact_lookup(
+            self._session, base_url=self.base_url, ssn=ssn, site=site
+        )
 
     # ------------------------------------------------------------------ cases (search)
 
@@ -67,7 +77,9 @@ class GoClient:
             returned_cases_number=returned_cases_number,
             exclude_deleted=exclude_deleted,
         )
-        return cases.find_case(self._session, base_url=self.base_url, search_data=search)
+        return cases.find_case(
+            self._session, base_url=self.base_url, search_data=search
+        )
 
     def find_cases_by_contact(
         self,
@@ -90,7 +102,9 @@ class GoClient:
             returned_cases_number=returned_cases_number,
             field_properties=field_properties,
         )
-        return cases.find_case(self._session, base_url=self.base_url, search_data=search)
+        return cases.find_case(
+            self._session, base_url=self.base_url, search_data=search
+        )
 
     def find_citizen_folder(
         self,
@@ -105,7 +119,9 @@ class GoClient:
         search = payloads.search_citizen_folder_data(
             case_type_prefix, person_full_name, person_id, person_ssn, category=category
         )
-        return cases.find_case(self._session, base_url=self.base_url, search_data=search)
+        return cases.find_case(
+            self._session, base_url=self.base_url, search_data=search
+        )
 
     # ------------------------------------------------------------------ cases (write)
 
@@ -123,7 +139,10 @@ class GoClient:
             person_full_name, person_id, person_ssn, category=category
         )
         return cases.create_case(
-            self._session, base_url=self.base_url, case_type_prefix=case_type_prefix, metadata_xml=xml
+            self._session,
+            base_url=self.base_url,
+            case_type_prefix=case_type_prefix,
+            metadata_xml=xml,
         )
 
     def create_case(
@@ -162,17 +181,34 @@ class GoClient:
             start_date=start_date,
         )
         return cases.create_case(
-            self._session, base_url=self.base_url, case_type_prefix=case_type_prefix, metadata_xml=xml
+            self._session,
+            base_url=self.base_url,
+            case_type_prefix=case_type_prefix,
+            metadata_xml=xml,
         )
 
     def open_case(self, case_id: str, *, reason: str | None = None) -> None:
-        cases.open_case(self._session, base_url=self.base_url, case_id=case_id, reason=reason)
+        cases.open_case(
+            self._session, base_url=self.base_url, case_id=case_id, reason=reason
+        )
 
     def close_case(self, case_id: str, *, reason: str | None = None) -> None:
-        cases.close_case(self._session, base_url=self.base_url, case_id=case_id, reason=reason)
+        cases.close_case(
+            self._session, base_url=self.base_url, case_id=case_id, reason=reason
+        )
 
     def get_case_metadata(self, case_id: str) -> dict:
-        return cases.get_case_metadata(self._session, base_url=self.base_url, case_id=case_id)
+        return cases.get_case_metadata(
+            self._session, base_url=self.base_url, case_id=case_id
+        )
+
+    def case_modern_search(self, term: str, case_type_prefix: str) -> dict:
+        return cases.case_modern_search(
+            self._session,
+            base_url=self.base_url,
+            term=term,
+            case_type_prefix=case_type_prefix,
+        )
 
     # ------------------------------------------------------------------ documents (write)
 
@@ -227,7 +263,7 @@ class GoClient:
             self._session, base_url=self.base_url, term=term, limit=limit
         )
 
-    def modern_search(
+    def document_modern_search(
         self,
         term: str,
         *,
@@ -247,14 +283,18 @@ class GoClient:
     # ------------------------------------------------------------------ documents (read)
 
     def document_metadata(self, dok_id: str) -> dict:
-        return documents.fetch_metadata(self._session, base_url=self.base_url, dok_id=dok_id)
+        return documents.fetch_metadata(
+            self._session, base_url=self.base_url, dok_id=dok_id
+        )
 
     def download(self, dok_id: str, local_path: str) -> None:
         documents.download_file(
             self._session, base_url=self.base_url, dok_id=dok_id, local_path=local_path
         )
 
-    def convert_to_pdf(self, dok_id: str, version_ui: str, *, timeout: int | None = None) -> bytes | None:
+    def convert_to_pdf(
+        self, dok_id: str, version_ui: str, *, timeout: int | None = None
+    ) -> bytes | None:
         return documents.pdf_convert(
             username=self._username,
             password=self._password,
@@ -265,14 +305,23 @@ class GoClient:
         )
 
     def parents(self, dok_id: str) -> list[str]:
-        return documents.fetch_parents(self._session, base_url=self.base_url, dok_id=dok_id)
+        return documents.fetch_parents(
+            self._session, base_url=self.base_url, dok_id=dok_id
+        )
 
     def children(self, dok_id: str) -> list[str]:
-        return documents.fetch_children(self._session, base_url=self.base_url, dok_id=dok_id)
+        return documents.fetch_children(
+            self._session, base_url=self.base_url, dok_id=dok_id
+        )
 
     # ------------------------------------------------------------------ personalesag discovery
 
-    def find_documents(self, *, cpr: str, tjenestenummer: str | None = None) -> list[GoDocument]:
+    def find_documents(
+        self, *, cpr: str, tjenestenummer: str | None = None
+    ) -> list[GoDocument]:
         return discovery.find_documents(
-            self._session, base_url=self.base_url, cpr=cpr, tjenestenummer=tjenestenummer
+            self._session,
+            base_url=self.base_url,
+            cpr=cpr,
+            tjenestenummer=tjenestenummer,
         )

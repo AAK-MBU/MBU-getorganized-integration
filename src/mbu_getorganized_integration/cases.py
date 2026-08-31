@@ -14,6 +14,8 @@ functions own only the transport + typed parse.
 
 from __future__ import annotations
 
+import json
+
 import requests
 
 from . import endpoints, payloads
@@ -36,7 +38,9 @@ def create_case(
     here — they differ only in the MetadataXml the caller supplies. Returns the
     created :class:`Case` (``id`` = GO ``CaseID``). Confirmed shape (esdh_client).
     """
-    body = payloads.case_data_json(case_type_prefix, metadata_xml, return_when_fully_created)
+    body = payloads.case_data_json(
+        case_type_prefix, metadata_xml, return_when_fully_created
+    )
     r = request(s, "POST", endpoints.cases(base_url), json=body)
     data = r.json()
     return Case(id=data["CaseID"], raw=data)
@@ -86,4 +90,32 @@ def get_case_metadata(s: requests.Session, *, base_url: str, case_id: str) -> di
     parsing the XML is the caller's job. Confirmed shape (discovery chain).
     """
     r = request(s, "GET", endpoints.case_metadata(base_url, case_id))
+    return r.json()
+
+
+def case_modern_search(
+    s: requests.Session, *, base_url: str, term: str, case_type_prefix: str
+) -> dict:
+    payload = {
+        "QueryPageIndex": 1,
+        "PageSize": 0,
+        "QueryPhrase": term,
+        "QueryType": "Cases",
+        "TrimToOpenedCases": True,
+        "ResultTypeName": "Oversager",
+        "SearchContentDefinitionEntryType": 2,
+        "AdditionalSelectColumns": [],
+        "ResultTypeListNameOrType": None,
+        "ResultTypeSearchOnlyItems": True,
+        "ResultTypeQueryFilter": f'-ccmparentcase:"{case_type_prefix}"',
+        "CaseQueryFieldCollection": [],
+        "QueryFieldCollection": [],
+        "CaseTypePrefixes": [case_type_prefix],
+        "SortDirection1": 1,
+        "ResultViewSortOrder1": 2,
+        "ResultViewSortOrder2": 2,
+        "QueryScope": 0,
+    }
+    r = request(s, "POST", endpoints.modern_search(base_url), data=json.dumps(payload))
+
     return r.json()
