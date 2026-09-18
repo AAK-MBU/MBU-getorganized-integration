@@ -36,7 +36,9 @@ def create_case(
     here — they differ only in the MetadataXml the caller supplies. Returns the
     created :class:`Case` (``id`` = GO ``CaseID``). Confirmed shape (esdh_client).
     """
-    body = payloads.case_data_json(case_type_prefix, metadata_xml, return_when_fully_created)
+    body = payloads.case_data_json(
+        case_type_prefix, metadata_xml, return_when_fully_created
+    )
     r = request(s, "POST", endpoints.cases(base_url), json=body)
     data = r.json()
     return Case(id=data["CaseID"], raw=data)
