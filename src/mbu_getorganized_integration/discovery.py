@@ -27,7 +27,6 @@ from . import endpoints
 from ._http import request
 from .models import CaseDocument, GoDocument, Subcase
 
-
 # This view selects the sub-cases' title + CaseID. Static — the proven
 # personalemapper "UndersagerOpen" view.
 _SUBCASE_VIEW_XML = (
@@ -42,7 +41,9 @@ _SUBCASE_VIEW_XML = (
 )
 
 
-def case_lookup_by_cpr(s: requests.Session, *, base_url: str, cpr: str) -> tuple[str, str]:
+def case_lookup_by_cpr(
+    s: requests.Session, *, base_url: str, cpr: str, tjenestenummer: str | None = None
+) -> tuple[str, str]:
     """Resolve a person's personalesag from their CPR.
 
     Runs GO's modern search scoped to PER cases, matches the result whose title
@@ -64,9 +65,17 @@ def case_lookup_by_cpr(s: requests.Session, *, base_url: str, cpr: str) -> tuple
         "SearchContentDefinitionEntryType": 2,
         "ResultViewInternalName": "4b82f943-e2bb-48aa-b2b3-6ab8e7d948d6",
         "AdditionalSelectColumns": [
-            "CCMTitle", "CCMEmploymentCode", "CCMContactData", "CCMContactDataCPR",
-            "CCMAfdeling", "CCMMedarbejdernummer", "CCMCaseOwner", "CCMParentCase",
-            "docicon", "CCMDocID", "CCMCaseID",
+            "CCMTitle",
+            "CCMEmploymentCode",
+            "CCMContactData",
+            "CCMContactDataCPR",
+            "CCMAfdeling",
+            "CCMMedarbejdernummer",
+            "CCMCaseOwner",
+            "CCMParentCase",
+            "docicon",
+            "CCMDocID",
+            "CCMCaseID",
         ],
         "ResultTypeListNameOrType": None,
         "ResultTypeSearchOnlyItems": True,
@@ -85,10 +94,27 @@ def case_lookup_by_cpr(s: requests.Session, *, base_url: str, cpr: str) -> tuple
     results = r.json()["results"]["Results"]
 
     cpr_dashed = f"{cpr[:6]}-{cpr[-4:]}"
-    case_url = next(
-        (item["caseurl"] for item in results if cpr_dashed in item.get("title", "")),
-        None,
-    )
+    if not tjenestenummer:
+        case_url = next(
+            (
+                item["caseurl"]
+                for item in results
+                if cpr_dashed in item.get("title", "")
+            ),
+            None,
+        )
+    else:
+        case_url = next(
+            (
+                item["caseurl"]
+                for item in results
+                if (
+                    cpr_dashed in item.get("title", "")
+                    and tjenestenummer in item.get("ccmemploymentcode")
+                )
+            ),
+            None,
+        )
     if not case_url:
         raise LookupError("No personalesag found for the given CPR.")
     # caseurl: "cases/<AKT-prefix>/<PersonaleSagsID>"
@@ -163,7 +189,9 @@ def list_documents_in_case(
     encoded_sags_id = sags_id.rsplit("-", 1)[0].replace("-", "%2D")
 
     counter = request(
-        s, "GET", f"{base_url}/{sags_url}/_goapi/Administration/GetLeftMenuCounter/{endelse}"
+        s,
+        "GET",
+        f"{base_url}/{sags_url}/_goapi/Administration/GetLeftMenuCounter/{endelse}",
     )
     views = {it.get("ViewName"): it.get("ViewId") for it in counter.json()}
     view_ids = [views.get("IkkeJournaliseret.aspx"), views.get("Journaliseret.aspx")]
@@ -228,7 +256,9 @@ def find_documents(
     the result — the personalesag is keyed by CPR. Raises ``LookupError`` if no
     personalesag matches the CPR.
     """
-    personale_sags_id, akt_id = case_lookup_by_cpr(s, base_url=base_url, cpr=cpr)
+    personale_sags_id, akt_id = case_lookup_by_cpr(
+        s, base_url=base_url, cpr=cpr, tjenestenummer=tjenestenummer
+    )
     docs: list[GoDocument] = []
     seen: set[str] = set()
     for folder in list_subcases(
